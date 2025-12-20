@@ -37,7 +37,7 @@ app.get('/api/v1/health', (req, res) => {
     success: true,
     message: 'Server is running smoothly 🚀',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    environment: process.env.NODE_ENV
   });
 });
 

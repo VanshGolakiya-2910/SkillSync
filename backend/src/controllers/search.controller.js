@@ -2,8 +2,7 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asynchandler.js";
-import {Project } from "../models/project.model.js"
-
+import { Project } from "../models/project.model.js";
 
 const searchUserById = asyncHandler(async (req, res) => {
   const { id: searchId } = req.params;
@@ -21,68 +20,87 @@ const searchUserById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { user }, "User found successfully"));
 });
 
+/**
+ * Unified search handler for users, projects, or both.
+ * Supports pagination via `page` and `limit` query/body params.
+ * Params (query or body):
+ * - q: search term (required)
+ * - type: 'users' | 'projects' | 'all' (defaults to 'all')
+ * - page: page number (1-based, defaults to 1)
+ * - limit: results per page (defaults to 10)
+ *
+ * Pagination explanation:
+ * - `page` is 1-based (page=1 returns the first set of results).
+ * - `limit` defines how many items are returned per page.
+ * - `skip` is calculated as (page - 1) * limit and tells MongoDB how many
+ *   documents to skip before starting to return results.
+ * - `countDocuments` is used to get the total number of matching documents so
+ *   the API can calculate `totalPages` and include `totalResults` in the response.
+ */
+const search = asyncHandler(async (req, res) => {
+  const q = (req.query.q || req.body.q || "").trim();
+  const type = (req.query.type || req.body.type || "all").toLowerCase();
 
+  // Pagination params: default page=1, limit=10
+  const page = Math.max(1, parseInt(req.query.page || req.body.page || "1", 10));
+  const limit = Math.max(1, parseInt(req.query.limit || req.body.limit || "10", 10));
 
-const searchUserByUsername = asyncHandler(async (req, res) => {
-  const { username } = req.body;
+  // Calculate how many documents to skip. This is central to pagination.
+  const skip = (page - 1) * limit;
 
-  if (!username) throw new ApiError(400, "Username is required");
+  if (!q) throw new ApiError(400, "Query parameter `q` is required");
 
-  const users = await User.find({
-    username: { $regex: username, $options: "i" },
-  }).select("username fullname avatar email");
+  const regex = { $regex: q, $options: "i" };
 
-  if (!users || users.length === 0)
-    throw new ApiError(404, "No users found with that username");
+  const results = {};
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { totalResults: users.length, users },
-        "Users found successfully"
-      )
-    );
+  if (type === "users" || type === "all") {
+    const userFilter = { $or: [{ username: regex }, { fullname: regex }, { email: regex }] };
+
+    // total count for users matching the filter (used to compute total pages)
+    const totalUsers = await User.countDocuments(userFilter);
+
+    // fetch paginated user results
+    const users = await User.find(userFilter)
+      .select("username fullname avatar email")
+      .skip(skip)
+      .limit(limit);
+
+    results.users = users;
+    results.userPagination = {
+      page,
+      limit,
+      totalResults: totalUsers,
+      totalPages: Math.ceil(totalUsers / limit) || 0,
+    };
+  }
+
+  if (type === "projects" || type === "all") {
+    const projectFilter = {
+      $or: [
+        { title: regex },
+        { description: regex },
+        { tags: regex },
+        { techStack: regex },
+      ],
+    };
+
+    // total count for projects matching the filter
+    const totalProjects = await Project.countDocuments(projectFilter);
+
+    // fetch paginated project results
+    const projects = await Project.find(projectFilter).skip(skip).limit(limit);
+
+    results.projects = projects;
+    results.projectPagination = {
+      page,
+      limit,
+      totalResults: totalProjects,
+      totalPages: Math.ceil(totalProjects / limit) || 0,
+    };
+  }
+
+  return res.status(200).json(new ApiResponse(200, results, "Search completed"));
 });
 
-const searchProjectsByTitle = asyncHandler(async(req , res , next) =>{
-    const { title } = req.body 
-    if(!title) throw new ApiError(400 ,"Enter the field")
-
-  const projects = await Project.find({
-    title: { $regex: title, $options: "i" },
-  });
-
-    if(!projects || projects.length === 0) throw new ApiError(400, "Project not found")
-    
-     return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { totalResults: projects.length, projects },
-        "Projects found successfully"
-      )
-    );
-})
-
-const globalSearch = asyncHandler(async(req , res ,next) => {
-  const {type , field , id, title , username } =req.params
-  if(!type || !field) throw new ApiError("Add atleast one field")
-
-  if(type === "project"){
-    const project  = Project.aggregate({
-      $match :  [{title}]
-    })
-    
-  }
-    if(type === ""){
-    const project  = Project.aggregate({
-      $match :  [{title}]
-    })
-    
-  }
-})
-
-export { searchUserById, searchUserByUsername };
+export { searchUserById, search };
