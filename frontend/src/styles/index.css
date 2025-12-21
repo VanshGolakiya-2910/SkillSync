@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global resets */
+html, body {
+  @apply bg-white text-slate-900 antialiased;
+}
+
+.dark {
+  @apply bg-slate-900 text-slate-100;
+}
