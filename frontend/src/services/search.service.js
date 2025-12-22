@@ -23,3 +23,11 @@ export const searchPost = (data) => {
 export const getUserById = (userId) => {
   return api.get(`/search/user/${userId}`);
 };
+
+/**
+ * Global search (users + projects)
+ * @param {string} query
+ */
+export const searchAll = (query) => {
+  return api.get(`/search?q=${encodeURIComponent(query)}`);
+};

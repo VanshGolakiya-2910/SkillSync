@@ -38,69 +38,42 @@ const searchUserById = asyncHandler(async (req, res) => {
  *   the API can calculate `totalPages` and include `totalResults` in the response.
  */
 const search = asyncHandler(async (req, res) => {
-  const q = (req.query.q || req.body.q || "").trim();
-  const type = (req.query.type || req.body.type || "all").toLowerCase();
-
-  // Pagination params: default page=1, limit=10
-  const page = Math.max(1, parseInt(req.query.page || req.body.page || "1", 10));
-  const limit = Math.max(1, parseInt(req.query.limit || req.body.limit || "10", 10));
-
-  // Calculate how many documents to skip. This is central to pagination.
-  const skip = (page - 1) * limit;
-
+  const q = (req.query.q || "").trim();
   if (!q) throw new ApiError(400, "Query parameter `q` is required");
 
   const regex = { $regex: q, $options: "i" };
 
-  const results = {};
+  const users = await User.find({
+    $or: [
+      { username: regex },
+      { fullname: regex },
+      { email: regex },
+    ],
+  }).select("username fullname avatar email");
 
-  if (type === "users" || type === "all") {
-    const userFilter = { $or: [{ username: regex }, { fullname: regex }, { email: regex }] };
+  const projects = await Project.find({
+    $or: [
+      { title: regex },
+      { description: regex },
+      { tags: regex },
+      { techStack: regex },
+    ],
+  });
 
-    // total count for users matching the filter (used to compute total pages)
-    const totalUsers = await User.countDocuments(userFilter);
+  const results = [
+    ...users.map(u => ({
+      ...u.toObject(),
+      type: "user",
+    })),
+    ...projects.map(p => ({
+      ...p.toObject(),
+      type: "project",
+    })),
+  ];
 
-    // fetch paginated user results
-    const users = await User.find(userFilter)
-      .select("username fullname avatar email")
-      .skip(skip)
-      .limit(limit);
-
-    results.users = users;
-    results.userPagination = {
-      page,
-      limit,
-      totalResults: totalUsers,
-      totalPages: Math.ceil(totalUsers / limit) || 0,
-    };
-  }
-
-  if (type === "projects" || type === "all") {
-    const projectFilter = {
-      $or: [
-        { title: regex },
-        { description: regex },
-        { tags: regex },
-        { techStack: regex },
-      ],
-    };
-
-    // total count for projects matching the filter
-    const totalProjects = await Project.countDocuments(projectFilter);
-
-    // fetch paginated project results
-    const projects = await Project.find(projectFilter).skip(skip).limit(limit);
-
-    results.projects = projects;
-    results.projectPagination = {
-      page,
-      limit,
-      totalResults: totalProjects,
-      totalPages: Math.ceil(totalProjects / limit) || 0,
-    };
-  }
-
-  return res.status(200).json(new ApiResponse(200, results, "Search completed"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, results, "Search completed"));
 });
 
 export { searchUserById, search };

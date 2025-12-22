@@ -20,7 +20,14 @@ export default function FollowRequests() {
   if (loading) return <div>Loading requests...</div>;
 
   if (!requests.length) {
-    return <div className="text-center text-slate-500">No follow requests</div>;
+    return (
+      <div className="text-center py-20 space-y-2">
+        <h2 className="text-lg font-semibold">No Follow Requests yet</h2>
+        <p className="text-slate-600">
+          When someone sends you a follow request, it’ll appear here.
+        </p>
+      </div>
+    );
   }
 
   return (
