@@ -3,9 +3,11 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asynchandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-
-const getUser = asyncHandler(async (req, res, next) => {
-  const user = req.user;
+import fs from "fs";
+const getUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select(
+    "-password -refreshToken"
+  );
 
   if (!user) throw new ApiError(401, "Unauthorized");
 
@@ -34,6 +36,7 @@ const changeAvatar = asyncHandler(async (req, res, next) => {
   user.avatar = avatar.secure_url;
   await user.save();
 
+  fs.unlinkSync(avatarLocalPath);
   // Send response
   return res
     .status(200)
@@ -46,45 +49,77 @@ const changeAvatar = asyncHandler(async (req, res, next) => {
     );
 });
 
-const updateUserProfile = asyncHandler(async (req, res, next) => {
+const updateUserProfile = asyncHandler(async (req, res) => {
   const user = req.user;
-  const { username, email, fullname } = req.body;
-
   if (!user) throw new ApiError(401, "Unauthorized");
 
-  if (!username && !email && !fullname) {
-    throw new ApiError(400, "Enter at least one field to update");
+  const allowedFields = [
+    "bio",
+    "location",
+    "website",
+    "github",
+    "linkedin",
+    "isProfilePublic",
+  ];
+
+  let updated = false;
+
+  allowedFields.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      user[field] = req.body[field];
+      updated = true;
+    }
+  });
+
+  // Username update
+  if (req.body.username && req.body.username !== user.username) {
+    user.username = req.body.username;
+    updated = true;
   }
-  if (username) user.username = username;
-  if (email) user.email = email;
-  if (fullname) user.fullname = fullname;
 
-  await user.save();
+  if (!updated) {
+    throw new ApiError(400, "No valid fields provided to update");
+  }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { user }, "User profile updated successfully"));
+  try {
+    await user.save();
+  } catch (err) {
+    if (err.code === 11000) {
+      throw new ApiError(409, "Username already taken");
+    }
+    throw err;
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, user, "Profile updated successfully")
+  );
 });
 
-const changePassword = asyncHandler(async (req, res, next) => {
-  const userId = req.user._id;
+const changePassword = asyncHandler(async (req, res) => {
   const { password, newPassword } = req.body;
 
   if (!password) throw new ApiError(400, "Enter the old password");
   if (!newPassword) throw new ApiError(400, "Enter the new password");
 
-  const user = await User.findById(userId).select("+password");
+  const user = await User.findById(req.user._id).select("+password");
   if (!user) throw new ApiError(401, "Unauthorized");
 
   const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) throw new ApiError(401, "Invalid credentials");
 
   user.password = newPassword;
+  user.refreshToken = undefined;
+
   await user.save();
 
   return res
     .status(200)
-    .json(new ApiResponse(200, { user }, "Password updated successfully"));
+    .json(new ApiResponse(200, null, "Password updated successfully"));
 });
 
-export { getUser, changeAvatar, updateUserProfile, changePassword };
+export {
+  getUser,
+  changeAvatar,
+  updateUserProfile,
+  changePassword,
+};

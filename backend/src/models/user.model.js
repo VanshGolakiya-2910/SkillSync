@@ -11,6 +11,7 @@ const userSchema = new Schema(
       trim: true,
       index: true,
     },
+
     email: {
       type: String,
       unique: true,
@@ -19,21 +20,59 @@ const userSchema = new Schema(
       trim: true,
       lowercase: true,
     },
+
     avatar: { type: String },
-    fullname: { type: String },
-    password: { type: String, required: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
-    followers: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
-    ],
-    following: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
-    ],
-    requested: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
-    refreshToken: {
+
+    bio: {
       type: String,
+      trim: true,
+      maxlength: 300,
     },
+
+    location: {
+      type: String,
+      trim: true,
+    },
+
+    website: {
+      type: String,
+      trim: true,
+    },
+
+    github: {
+      type: String,
+      trim: true,
+    },
+
+    linkedin: {
+      type: String,
+      trim: true,
+    },
+
+    isProfilePublic: {
+      type: Boolean,
+      default: true,
+    },
+
+    password: {
+      type: String,
+      required: true,
+      select: false,
+    },
+
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+
+    followers: [{ type: Schema.Types.ObjectId, ref: "User", index: true }],
+    following: [{ type: Schema.Types.ObjectId, ref: "User", index: true }],
+    requested: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
+
+    refreshToken: { type: String },
+
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },
@@ -41,7 +80,9 @@ const userSchema = new Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return null;
+  if (!this.isModified("password")) {
+    return next();
+  }
 
   this.password = await bcrypt.hash(this.password, 10);
   next();
@@ -76,5 +117,10 @@ userSchema.methods.generateRefreshToken = function () {
     }
   );
 };
+userSchema.virtual("profileCompletion").get(function () {
+  const fields = ["avatar", "bio", "location", "github", "linkedin"];
+  const filled = fields.filter((f) => this[f]).length;
+  return Math.round((filled / fields.length) * 100);
+});
 
 export const User = mongoose.model("User", userSchema);
