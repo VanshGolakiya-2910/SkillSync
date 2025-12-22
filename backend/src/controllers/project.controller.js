@@ -7,7 +7,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 const addProject = asyncHandler(async (req, res, next) => {
   const user = req.user;
   const files = req.files;
-  const { title, description, tags, techStack } = req.body;
+  const { title, description, tags, techStack, visibility } = req.body;
 
   if (!user) throw new ApiError(401, "Unauthorized");
   if (!title || !description)
@@ -39,6 +39,7 @@ const addProject = asyncHandler(async (req, res, next) => {
     techStack: techStack ? techStack.split(",").map((t) => t.trim()) : [],
     projectPhotos: uploadedPhotos,
     projectVideo: uploadedVideo,
+    visibility: visibility || "public", // default
   });
 
   if (!project) throw new ApiError(500, "Error creating project");
@@ -75,18 +76,21 @@ const getAllProjects = asyncHandler(async (req, res) => {
   );
 });
 
-const getProjectByID = asyncHandler(async (req, res, next) => {
+const getProjectByID = asyncHandler(async (req, res) => {
   const user = req.user;
   const { id: projectId } = req.params;
 
-  if (!user) throw new ApiError(401, "Unauthorized access");
-
-  const project = await Project.findById(projectId);
+  const project = await Project.findById(projectId).populate(
+    "owner",
+    "username avatar"
+  );
 
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (project.owner.toString() !== user._id.toString()) {
-    throw new ApiError(403, "You are not allowed to access this project");
+  const isOwner = user && project.owner._id.toString() === user._id.toString();
+
+  if (project.visibility === "private" && !isOwner) {
+    throw new ApiError(404, "Project not found");
   }
 
   return res
@@ -177,7 +181,38 @@ const updateTechStack = asyncHandler(async (req, res, next) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Project techStack updated successfully"));
+    .json(
+      new ApiResponse(200, project, "Project techStack updated successfully")
+    );
+});
+
+const updateVisibility = asyncHandler(async (req, res) => {
+  const { id: projectId } = req.params;
+  const { visibility } = req.body;
+
+  if (!["public", "private"].includes(visibility)) {
+    throw new ApiError(400, "Invalid visibility value");
+  }
+
+  const project = await Project.findById(projectId);
+  if (!project) throw new ApiError(404, "Project not found");
+
+  project.visibility = visibility;
+  await project.save({ validateBeforeSave: false });
+
+  return res.status(200).json(
+    new ApiResponse(200, project, "Project visibility updated")
+  );
+});
+
+const discoverProjects = asyncHandler(async (req, res) => {
+  const projects = await Project.find({ visibility: "public" })
+    .sort({ createdAt: -1 })
+    .populate("owner", "username avatar");
+
+  return res.status(200).json(
+    new ApiResponse(200, projects, "Public projects fetched")
+  );
 });
 
 export {
@@ -187,5 +222,7 @@ export {
   deleteProject,
   updateProject,
   updateTags,
-  updateTechStack
+  updateTechStack,
+  updateVisibility,
+  discoverProjects,
 };
