@@ -1,12 +1,15 @@
-import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import useAuth from '@/hooks/useAuth';
+import AuthLayout from '@/components/auth/AuthLayout';
+import AuthFooter from '@/components/auth/AuthFooter';
 import Input from '@/components/common/Input';
 import Button from '@/components/common/Button';
-import useAuth from '@/hooks/useAuth';
 
 export default function Login() {
   const { login } = useAuth();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -29,14 +32,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form
-        onSubmit={handleSubmit}
-        className="w-80 flex flex-col gap-4"
-      >
+    <AuthLayout title="Login">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Email"
           name="email"
+          type="email"
           value={form.email}
           onChange={handleChange}
           required
@@ -44,17 +45,28 @@ export default function Login() {
 
         <Input
           label="Password"
-          type="password"
           name="password"
+          type="password"
           value={form.password}
           onChange={handleChange}
           required
         />
 
+        <div className="text-right">
+          <Link
+            to="/forgot-password"
+            className="text-sm text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         <Button type="submit" loading={loading}>
           Login
         </Button>
       </form>
-    </div>
+
+      <AuthFooter type="login" />
+    </AuthLayout>
   );
 }

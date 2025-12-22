@@ -20,7 +20,7 @@ module.exports = {
     },
   },
   rules: {
-    'react/react-in-jsx-scope': 'off', // Not needed in React 17+
+    'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
   },
