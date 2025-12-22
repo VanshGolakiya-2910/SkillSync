@@ -176,7 +176,7 @@ The application should now be running at `http://localhost:5173` (Vite default) 
 
 ## 📄 License
 
-This project is licensed under the ISC License.Here is the `README.md` for your **SkillSync** repository, based on the backend and frontend configuration files provided.
+This project is licensed under the MIT License.Here is the `README.md` for your **SkillSync** repository, based on the backend and frontend configuration files provided.
 
 ----------
 
@@ -358,4 +358,4 @@ The application should now be running at `http://localhost:5173` (Vite default) 
 
 ## 📄 License
 
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.
