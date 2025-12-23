@@ -211,9 +211,14 @@ const discoverProjects = asyncHandler(async (req, res) => {
     .populate("owner", "username avatar");
 
   return res.status(200).json(
-    new ApiResponse(200, projects, "Public projects fetched")
+    new ApiResponse(
+      200,
+      projects,
+      "Public projects fetched successfully"
+    )
   );
 });
+
 
 export {
   addProject,

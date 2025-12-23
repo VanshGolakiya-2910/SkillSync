@@ -1,3 +1,6 @@
+import mongoose from "mongoose";
+const { Schema } = mongoose;
+
 const projectSchema = new Schema(
   {
     title: {
@@ -6,7 +9,6 @@ const projectSchema = new Schema(
       lowercase: true,
       trim: true,
       index: true,
-      // ❌ REMOVE unique: true
     },
 
     description: { type: String, required: true },
@@ -35,3 +37,5 @@ const projectSchema = new Schema(
   },
   { timestamps: true }
 );
+
+export const Project = mongoose.model("Project", projectSchema);
