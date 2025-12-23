@@ -6,9 +6,7 @@ import Avatar from '@/components/common/Avatar';
 import SearchBar from '@/components/common/SearchBar';
 
 const navLinkClass = ({ isActive }) =>
-  isActive
-    ? 'text-primary font-medium'
-    : 'text-slate-600 hover:text-slate-900';
+  isActive ? 'text-primary font-medium' : 'text-slate-600 hover:text-slate-900';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -60,6 +58,10 @@ const Navbar = () => {
           Projects
         </NavLink>
 
+        <NavLink to="/discover" className={navLinkClass}>
+          Discover
+        </NavLink>
+
         {user && (
           <div className="relative" ref={dropdownRef}>
             <button
@@ -67,9 +69,7 @@ const Navbar = () => {
               className="flex items-center gap-2 focus:outline-none"
             >
               <Avatar src={user.avatar} size={32} />
-              <span className="text-sm text-slate-700">
-                {user.name}
-              </span>
+              <span className="text-sm text-slate-700">{user.name}</span>
             </button>
 
             {open && (
@@ -81,6 +81,7 @@ const Navbar = () => {
                 >
                   Profile
                 </Link>
+
                 <button
                   onClick={logout}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50"
@@ -94,10 +95,7 @@ const Navbar = () => {
       </div>
 
       {/* Mobile menu button */}
-      <button
-        className="md:hidden text-slate-700"
-        onClick={() => setOpen((v) => !v)}
-      >
+      <button className="md:hidden text-slate-700" onClick={() => setOpen((v) => !v)}>
         <Menu size={22} />
       </button>
 
@@ -111,16 +109,30 @@ const Navbar = () => {
               onSubmit={handleSearchSubmit}
             />
 
-            <NavLink to="/projects" className={navLinkClass} onClick={() => setOpen(false)}>
+            <NavLink
+              to="/projects"
+              className={navLinkClass}
+              onClick={() => setOpen(false)}
+            >
               Projects
             </NavLink>
-            <NavLink to="/profile" className={navLinkClass} onClick={() => setOpen(false)}>
+
+            <NavLink
+              to="/discover"
+              className={navLinkClass}
+              onClick={() => setOpen(false)}
+            >
+              Discover
+            </NavLink>
+
+            <NavLink
+              to="/profile"
+              className={navLinkClass}
+              onClick={() => setOpen(false)}
+            >
               Profile
             </NavLink>
-            <button
-              onClick={logout}
-              className="text-left text-red-600"
-            >
+            <button onClick={logout} className="text-left text-red-600">
               Logout
             </button>
           </div>

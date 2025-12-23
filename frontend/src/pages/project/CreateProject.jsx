@@ -18,6 +18,7 @@ export default function CreateProject() {
 
   const [photos, setPhotos] = useState([]);
   const [video, setVideo] = useState(null);
+  const [visibility, setVisibility] = useState('public');
 
   /* ---------------- handlers ---------------- */
 
@@ -59,7 +60,7 @@ export default function CreateProject() {
       data.append('description', form.description);
       data.append('tags', form.tags);
       data.append('techStack', form.techStack);
-
+      data.append('visibility', visibility);
       photos.forEach((photo) => {
         data.append('projectPhotos', photo);
       });
@@ -67,7 +68,7 @@ export default function CreateProject() {
       if (video) {
         data.append('projectVideo', video);
       }
-
+      
       await createProject(data);
       navigate('/', { replace: true });
     } finally {
@@ -197,6 +198,37 @@ export default function CreateProject() {
             className="w-full rounded-lg border"
           />
         )}
+      </div>
+      <div className="rounded-lg border p-4 space-y-3">
+        <p className="text-sm font-medium text-slate-700">Project visibility</p>
+
+        <div className="flex items-center gap-6">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="visibility"
+              value="public"
+              checked={visibility === 'public'}
+              onChange={() => setVisibility('public')}
+            />
+            Public
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="visibility"
+              value="private"
+              checked={visibility === 'private'}
+              onChange={() => setVisibility('private')}
+            />
+            Private 
+          </label>
+        </div>
+
+        <p className="text-xs text-slate-500">
+          Public projects appear in global search and discovery.
+        </p>
       </div>
 
       {/* Submit */}

@@ -59,3 +59,9 @@ export const updateProjectTags = (id, tags) => {
 export const updateProjectTechStack = (id, techStack) => {
   return api.patch(`/project/${id}/techStack`, { techStack });
 };
+export const updateProjectVisibility = (projectId, visibility) =>
+  api.patch(`/project/${projectId}/visibility`, { visibility });
+
+export const getPublicProjects = () =>
+  api.get('/project/discover');
+
