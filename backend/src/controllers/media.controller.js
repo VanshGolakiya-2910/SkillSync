@@ -10,47 +10,45 @@ const updateProjectImages = asyncHandler(async (req, res) => {
   const files = req.files;
   const { existingPhotos = [] } = req.body;
 
-  if (!files?.projectPhotos?.length) {
-    throw new ApiError(400, "No new images provided");
-  }
-
   const project = await Project.findById(projectId);
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
 
-  let uploadedPhotos = [];
+  let finalImages = [];
 
   try {
-    // ✅ keep existing images (sanitized)
+    /* ---------------- Keep images user did NOT remove ---------------- */
     if (Array.isArray(existingPhotos)) {
-      uploadedPhotos.push(
-        ...existingPhotos.filter(
-          (url) => typeof url === "string" && url.startsWith("http")
-        )
+      finalImages = existingPhotos.filter(
+        (url) => typeof url === "string" && url.startsWith("http")
       );
     }
 
-    // ✅ upload new images
-    for (const file of files.projectPhotos) {
-      const result = await uploadOnCloudinary(file.path);
-      if (!result?.secure_url) {
-        throw new ApiError(500, "Failed to upload image");
+    /* ---------------- Append new uploads ---------------- */
+    if (files?.projectPhotos?.length) {
+      for (const file of files.projectPhotos) {
+        const result = await uploadOnCloudinary(file.path);
+        if (!result?.secure_url) {
+          throw new ApiError(500, "Failed to upload image");
+        }
+        finalImages.push(result.secure_url);
       }
-      uploadedPhotos.push(result.secure_url);
     }
 
-    if (!uploadedPhotos.length) {
-      throw new ApiError(400, "No valid project images found");
+    if (!finalImages.length) {
+      throw new ApiError(400, "Project must have at least one image");
     }
 
-    project.projectPhotos = uploadedPhotos;
+    project.projectPhotos = finalImages;
     await project.save();
   } finally {
-    // ✅ ALWAYS cleanup temp files
-    for (const file of files.projectPhotos) {
-      if (file?.path && fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
+    /* ---------------- Cleanup temp files ---------------- */
+    if (files?.projectPhotos) {
+      for (const file of files.projectPhotos) {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
       }
     }
   }
@@ -63,6 +61,9 @@ const updateProjectImages = asyncHandler(async (req, res) => {
     )
   );
 });
+
+export { updateProjectImages };
+
 
 const updateProjectVideo = asyncHandler(async (req, res) => {
   const { id: projectId } = req.params;
