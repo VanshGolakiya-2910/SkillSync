@@ -16,37 +16,42 @@ const getUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "User details fetched successfully"));
 });
 
-const changeAvatar = asyncHandler(async (req, res, next) => {
+const changeAvatar = asyncHandler(async (req, res) => {
   const user = req.user;
   const files = req.files;
 
-  if (!user) throw new ApiError(401, "Unauthorized");
+  if (!user) {
+    throw new ApiError(401, "Unauthorized");
+  }
 
-  if (!files || !files.avatar || !files.avatar[0] || !files.avatar[0].path) {
+  if (!files?.avatar?.[0]?.path) {
     throw new ApiError(400, "No avatar file provided");
   }
 
-  const avatarLocalPath = files.avatar[0].path;
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  const avatarPath = files.avatar[0].path;
 
-  if (!avatar || !avatar.secure_url) {
-    throw new ApiError(500, "Failed to upload avatar to Cloudinary");
+  try {
+    const result = await uploadOnCloudinary(avatarPath);
+
+    if (!result?.secure_url) {
+      throw new ApiError(500, "Failed to upload avatar to Cloudinary");
+    }
+
+    user.avatar = result.secure_url;
+    await user.save();
+  } finally {
+    if (fs.existsSync(avatarPath)) {
+      fs.unlinkSync(avatarPath);
+    }
   }
 
-  user.avatar = avatar.secure_url;
-  await user.save();
-
-  fs.unlinkSync(avatarLocalPath);
-  // Send response
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { avatar: avatar.secure_url },
-        "Avatar updated successfully"
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { avatar: user.avatar },
+      "Avatar updated successfully"
+    )
+  );
 });
 
 const updateUserProfile = asyncHandler(async (req, res) => {

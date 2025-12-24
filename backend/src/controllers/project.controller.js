@@ -1,3 +1,4 @@
+import fs from "fs";
 import { Project } from "../models/project.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -16,19 +17,29 @@ const addProject = asyncHandler(async (req, res, next) => {
   if (!files || !files.projectPhotos || !files.projectPhotos.length) {
     throw new ApiError(400, "At least one project photo is required");
   }
+  try {
+    for (const photo of files.projectPhotos) {
+      const result = await uploadOnCloudinary(photo.path);
+      if (!result?.secure_url) {
+        throw new ApiError(500, "Failed to upload photo");
+      }
+      uploadedPhotos.push(result.secure_url);
+    }
 
-  const uploadedPhotos = [];
-  for (const photo of files.projectPhotos) {
-    const result = await uploadOnCloudinary(photo.path);
-    if (!result?.secure_url) throw new ApiError(500, "Failed to upload photo");
-    uploadedPhotos.push(result.secure_url);
-  }
-
-  let uploadedVideo = null;
-  if (files.projectVideo && files.projectVideo[0]?.path) {
-    const result = await uploadOnCloudinary(files.projectVideo[0].path);
-    if (!result?.secure_url) throw new ApiError(500, "Failed to upload video");
-    uploadedVideo = result.secure_url;
+    if (files.projectVideo?.[0]?.path) {
+      const result = await uploadOnCloudinary(files.projectVideo[0].path);
+      if (!result?.secure_url) {
+        throw new ApiError(500, "Failed to upload video");
+      }
+      uploadedVideo = result.secure_url;
+    }
+  } finally {
+    // ✅ ALWAYS clean temp files
+    for (const file of Object.values(files).flat()) {
+      if (file?.path && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    }
   }
 
   const project = await Project.create({
@@ -200,9 +211,9 @@ const updateVisibility = asyncHandler(async (req, res) => {
   project.visibility = visibility;
   await project.save({ validateBeforeSave: false });
 
-  return res.status(200).json(
-    new ApiResponse(200, project, "Project visibility updated")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, project, "Project visibility updated"));
 });
 
 const discoverProjects = asyncHandler(async (req, res) => {
@@ -210,11 +221,77 @@ const discoverProjects = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .populate("owner", "username avatar");
 
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, projects, "Public projects fetched successfully")
+    );
+});
+
+const updateProjectMedia = asyncHandler(async (req, res) => {
+  const { id: projectId } = req.params;
+  const files = req.files;
+
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  if (!files || (!files.projectPhotos && !files.projectVideo)) {
+    throw new ApiError(400, "No media files provided");
+  }
+
+  let updated = false;
+
+  try {
+    /* ---------- Images ---------- */
+    if (files.projectPhotos?.length) {
+      const uploadedPhotos = [];
+
+      for (const photo of files.projectPhotos) {
+        const result = await uploadOnCloudinary(photo.path);
+        if (!result?.secure_url) {
+          throw new ApiError(500, "Failed to upload image");
+        }
+        uploadedPhotos.push(result.secure_url);
+      }
+
+      // Replace existing images
+      project.projectPhotos = uploadedPhotos;
+      updated = true;
+    }
+
+    /* ---------- Video ---------- */
+    if (files.projectVideo?.[0]?.path) {
+      const result = await uploadOnCloudinary(files.projectVideo[0].path);
+      if (!result?.secure_url) {
+        throw new ApiError(500, "Failed to upload video");
+      }
+
+      project.projectVideo = result.secure_url;
+      updated = true;
+    }
+
+    if (!updated) {
+      throw new ApiError(400, "No valid media files provided");
+    }
+
+    await project.save();
+  } finally {
+    if (files) {
+      for (const file of Object.values(files).flat()) {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      }
+    }
+  }
+
   return res.status(200).json(
     new ApiResponse(
       200,
-      projects,
-      "Public projects fetched successfully"
+      { project },
+      "Project media updated successfully"
     )
   );
 });
@@ -230,4 +307,5 @@ export {
   updateTechStack,
   updateVisibility,
   discoverProjects,
+  updateProjectMedia,
 };

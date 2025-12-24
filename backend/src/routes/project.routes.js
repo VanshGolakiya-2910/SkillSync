@@ -9,6 +9,7 @@ import {
   updateTechStack,
   updateVisibility,
   discoverProjects,
+  updateProjectMedia
 } from "../controllers/project.controller.js";
 
 import { VerifyJWT, VerifyOwnership } from "../middleware/auth.middleware.js";
@@ -52,6 +53,18 @@ router.patch(
   VerifyJWT,
   VerifyOwnership,
   updateVisibility
+);
+
+/* -------------------- MEDIA UPLOADS -------------------- */
+router.patch(
+  "/:id/media",
+  VerifyJWT,
+  VerifyOwnership,
+  upload.fields([
+    { name: "projectPhotos", maxCount: 10 },
+    { name: "projectVideo", maxCount: 1 },
+  ]),
+  updateProjectMedia
 );
 
 export default router;
