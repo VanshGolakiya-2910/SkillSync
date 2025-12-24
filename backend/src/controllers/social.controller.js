@@ -3,16 +3,13 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asynchandler.js";
 
-//followUser & AcceptUser logic : followID comes from the params and userID from the verifyJWT 
-//      : after that compare and add in the requested or follow or follower as per the requirement 
+//followUser & AcceptUser logic : followID comes from the params and userID from the verifyJWT
+//      : after that compare and add in the requested or follow or follower as per the requirement
 
 //getFollowers and getFollowing   : get without checking for auth
 //getRequested : check user from cookies and only get the users requested
 
-
-
 const followUser = asyncHandler(async (req, res, next) => {
-
   const user = req.user;
   const { id: followId } = req.params;
 
@@ -95,7 +92,13 @@ const getAllFollowers = asyncHandler(async (req, res, next) => {
 
   const totalCount = await User.aggregate([
     { $match: { _id: user._id } },
-    { $project: { count: { $size: "$followers" } } },
+    {
+      $project: {
+        count: {
+          $size: { $ifNull: ["$followers", []] },
+        },
+      },
+    },
   ]);
 
   const followersCount = totalCount[0]?.count || 0;
@@ -136,7 +139,13 @@ const getAllFollowing = asyncHandler(async (req, res, next) => {
 
   const totalCount = await User.aggregate([
     { $match: { _id: user._id } },
-    { $project: { count: { $size: "$following" } } },
+    {
+      $project: {
+        count: {
+          $size: { $ifNull: ["$following", []] },
+        },
+      },
+    },
   ]);
 
   const followingCount = totalCount[0]?.count || 0;
@@ -164,9 +173,9 @@ const getAllRequested = asyncHandler(async (req, res, next) => {
 
   const requestedUsers = user.requested || [];
   const requestedCount = requestedUsers.length;
-  ``
+  ``;
   return res
-    .status(200)  
+    .status(200)
     .json(
       new ApiResponse(
         200,

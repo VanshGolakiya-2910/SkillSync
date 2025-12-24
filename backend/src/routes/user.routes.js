@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getUser,
+  getUserById,
   changeAvatar,
   updateUserProfile,
   changePassword,
@@ -11,6 +12,7 @@ import {avatarUploadOptions } from "../constant.js"
 
 const router = express.Router();
 router.get("/me", VerifyJWT, getUser);
+router.get("/:id", VerifyJWT, getUserById);
 router.post(
   "/uploadAvatar",
   VerifyJWT,
