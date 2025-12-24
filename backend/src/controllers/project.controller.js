@@ -231,6 +231,7 @@ const discoverProjects = asyncHandler(async (req, res) => {
 const updateProjectMedia = asyncHandler(async (req, res) => {
   const { id: projectId } = req.params;
   const files = req.files;
+  const { existingPhotos } = req.body; // Get existing photos from request
 
   const project = await Project.findById(projectId);
   if (!project) {
@@ -245,19 +246,29 @@ const updateProjectMedia = asyncHandler(async (req, res) => {
 
   try {
     /* ---------- Images ---------- */
-    if (files.projectPhotos?.length) {
+    if (files.projectPhotos?.length || existingPhotos) {
       const uploadedPhotos = [];
 
-      for (const photo of files.projectPhotos) {
-        const result = await uploadOnCloudinary(photo.path);
-        if (!result?.secure_url) {
-          throw new ApiError(500, "Failed to upload image");
+      // Upload new photos
+      if (files.projectPhotos?.length) {
+        for (const photo of files.projectPhotos) {
+          const result = await uploadOnCloudinary(photo.path);
+          if (!result?.secure_url) {
+            throw new ApiError(500, "Failed to upload image");
+          }
+          uploadedPhotos.push(result.secure_url);
         }
-        uploadedPhotos.push(result.secure_url);
       }
 
-      // Replace existing images
-      project.projectPhotos = uploadedPhotos;
+      // ✅ Combine existing photos (from frontend) + newly uploaded photos
+      const existingPhotosList = existingPhotos 
+        ? (Array.isArray(existingPhotos) ? existingPhotos : [existingPhotos])
+        : [];
+      
+      project.projectPhotos = [
+        ...existingPhotosList,
+        ...uploadedPhotos
+      ];
       updated = true;
     }
 

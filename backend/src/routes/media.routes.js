@@ -1,25 +1,24 @@
-import express from 'express'
-import {updateProjectImages , updateProjectVideo } from '../controllers/media.controller.js'
-import { VerifyJWT, VerifyOwnership } from '../middleware/auth.middleware.js';
+import { Router } from 'express';
+import { updateProjectImages, updateProjectVideo } from '../controllers/media.controller.js';
 import { upload } from '../middleware/multer.middleware.js';
-import {photoUploadOptions , videoUploadOptions } from '../constant.js'
+import { VerifyJWT } from '../middleware/auth.middleware.js';
 
-const router = express.Router()
+const router = Router();
 
+// Images endpoint - accepts multiple photos
 router.patch(
-  "/:id/images",
+  '/:id/images',
   VerifyJWT,
-  VerifyOwnership,
-  upload.fields([photoUploadOptions]),
+  upload.fields([{ name: 'photos', maxCount: 10 }]),
   updateProjectImages
 );
 
+// Video endpoint - accepts single video
 router.patch(
-  "/:id/video",
+  '/:id/video',
   VerifyJWT,
-  VerifyOwnership,
-  upload.fields([videoUploadOptions]),
+  upload.fields([{ name: 'video', maxCount: 1 }]),
   updateProjectVideo
 );
 
-export default router
+export default router;
