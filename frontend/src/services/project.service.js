@@ -65,3 +65,14 @@ export const updateProjectVisibility = (projectId, visibility) =>
 export const getPublicProjects = () =>
   api.get('/project/discover');
 
+/* ---------------- Upload Project Media ---------------- */
+export const uploadProjectMedia = (projectId, formData) =>
+  api.patch(
+    `/project/${projectId}/media`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );

@@ -20,6 +20,7 @@ const ProjectList = lazy(() => import('@/pages/project/ProjectList'))
 const ProjectDetails = lazy(() => import('@/pages/project/ProjectDetails'))
 const CreateProject = lazy(() => import('@/pages/project/CreateProject'))
 const DiscoverProjects = lazy(() => import('@/pages/project/DiscoverProjects'))
+const EditProject = lazy(() => import('@/pages/project/EditProject'))
 
 // Social pages (lazy)
 const Followers = lazy(() => import('@/pages/social/Followers'))
@@ -57,7 +58,7 @@ const AppRoutes = () => {
           <Route path="/projects/:id" element={<ProjectDetails />} />
           <Route path="/projects/new" element={<CreateProject />} />
           <Route path="/discover" element={<DiscoverProjects />} />
-
+          <Route path="/projects/:id/edit" element={<EditProject />} />
 
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<EditProfile />} />
