@@ -61,6 +61,7 @@ const AppRoutes = () => {
           <Route path="/projects/:id/edit" element={<EditProject />} />
 
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:id" element={<Profile />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/profile/password" element={<ChangePassword />} />
 

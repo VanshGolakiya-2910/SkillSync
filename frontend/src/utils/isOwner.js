@@ -8,3 +8,9 @@ export const isProjectOwner = (user, project) => {
 
   return ownerId === user._id;
 };
+
+
+export const isOwner = (authUser, targetUser) => {
+  if (!authUser || !targetUser) return false;
+  return authUser._id === targetUser._id;
+};

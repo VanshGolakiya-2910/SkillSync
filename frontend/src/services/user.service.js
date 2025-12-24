@@ -35,3 +35,6 @@ export const uploadAvatar = (formData) => {
 export const changePassword = (data) => {
   return api.post('/user/changePassword', data);
 };
+
+export const getUserById = (id) =>
+  api.get(`/user/${id}`);

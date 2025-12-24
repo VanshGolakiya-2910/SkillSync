@@ -1,77 +1,94 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
-import Avatar from '@/components/common/Avatar';
-import Button from '@/components/common/Button';
-import { Link } from 'react-router-dom';
+
+import { getUserById } from '@/services/user.service';
+import { getFollowers, getFollowing, followUser } from '@/services/social.service';
+
+import { isOwner } from '@/utils/isOwner';
+
+import ProfileHeader from '@/components/user/ProfileHeader';
+import ProfileStats from '@/components/user/ProfileStats';
+import ProfileActions from '@/components/user/ProfileActions';
+import ProfileMeta from '@/components/user/ProfileMeta';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { id } = useParams();
+  const { user: authUser } = useAuth();
 
-  if (!user) return null;
+  const [profileUser, setProfileUser] = useState(null);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const isOwnProfile = !id || id === authUser?._id;
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const userData = isOwnProfile ? authUser : (await getUserById(id))?.data?.data;
+
+        if (!userData) return;
+
+        setProfileUser(userData);
+
+        const [followersRes, followingRes] = await Promise.all([
+          getFollowers(userData._id),
+          getFollowing(userData._id),
+        ]);
+        const followers = Array.isArray(followersRes?.data?.data?.followers)
+          ? followersRes.data.data.followers
+          : [];
+
+        const following = Array.isArray(followingRes?.data?.data?.following)
+          ? followingRes.data.data.following
+          : [];
+
+        setFollowersCount(followers.length);
+        setFollowingCount(following.length);
+
+        if (!isOwnProfile && authUser?._id) {
+          setIsFollowing(followers.some((u) => u._id === authUser._id));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (authUser) loadProfile();
+  }, [id, authUser, isOwnProfile]);
+
+  if (loading || !profileUser) return null;
+
+  const owner = isOwner(authUser, profileUser);
+
+  const handleFollow = async () => {
+    setFollowLoading(true);
+    try {
+      await followUser(profileUser._id);
+      setIsFollowing(true);
+      setFollowersCount((c) => c + 1);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Profile Card */}
       <div className="rounded-xl border bg-white p-6 space-y-6">
-        <div className="flex items-center gap-5">
-          <Avatar src={user.avatar} size={96} />
-
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold text-slate-900">
-              {user.name}
-            </h1>
-
-            <p className="text-slate-600 text-sm mt-1">
-              {user.email}
-            </p>
-
-            {user.username && (
-              <p className="text-slate-500 text-sm mt-1">
-                @{user.username}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-wrap gap-3 pt-2">
-          <Link to="/profile/edit">
-            <Button>Edit Profile</Button>
-          </Link>
-
-          <Link to="/profile/password">
-            <Button variant="secondary">
-              Change Password
-            </Button>
-          </Link>
-        </div>
+        <ProfileHeader user={profileUser} />
+        <ProfileStats followers={followersCount} following={followingCount} />
+        <ProfileActions
+          owner={owner}
+          isFollowing={isFollowing}
+          onFollow={handleFollow}
+          loading={followLoading}
+        />
       </div>
 
-      {/* Meta / Info (future-safe, optional fields only) */}
-      {(user.bio || user.location) && (
-        <div className="rounded-xl border bg-white p-6 space-y-3">
-          {user.bio && (
-            <div>
-              <h3 className="text-sm font-medium text-slate-700">
-                About
-              </h3>
-              <p className="text-slate-600 text-sm mt-1">
-                {user.bio}
-              </p>
-            </div>
-          )}
-
-          {user.location && (
-            <div>
-              <h3 className="text-sm font-medium text-slate-700">
-                Location
-              </h3>
-              <p className="text-slate-600 text-sm mt-1">
-                {user.location}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      <ProfileMeta user={profileUser} />
     </div>
   );
 }
