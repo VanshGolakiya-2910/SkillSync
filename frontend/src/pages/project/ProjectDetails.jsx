@@ -9,12 +9,12 @@ import Tag from '@/components/common/Tag';
 import ProjectGallery from '@/components/project/ProjectGallery';
 import VisibilityBadge from '@/components/project/VisibilityBadge';
 import { isProjectOwner } from '@/utils/isOwner.js';
+import { Pencil } from 'lucide-react';
 
 export default function ProjectDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,7 @@ export default function ProjectDetails() {
   }, [id]);
 
   const isOwner = isProjectOwner(user, project);
-  
+
   /* ---------------- Loading ---------------- */
   if (loading) {
     return (
@@ -51,9 +51,7 @@ export default function ProjectDetails() {
     return (
       <div className="text-center py-20">
         <h2 className="text-xl font-semibold">Project not found</h2>
-        <p className="text-slate-600 mt-1">
-          This project may be private or deleted.
-        </p>
+        <p className="text-slate-600 mt-1">This project may be private or deleted.</p>
       </div>
     );
   }
@@ -78,37 +76,27 @@ export default function ProjectDetails() {
       {/* HEADER */}
       <header className="space-y-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-4xl font-bold tracking-tight">
-            {project.title}
-          </h1>
+          <h1 className="text-4xl font-bold tracking-tight">{project.title}</h1>
+
           <VisibilityBadge visibility={project.visibility} />
-        </div>
 
-        <p className="max-w-3xl text-slate-600 text-lg">
-          {project.description}
-        </p>
-
-        {/* Owner actions */}
-        {isOwner && (
-          <div className="pt-2 flex gap-3">
-            <Button
-              variant="secondary"
+          {isOwner && (
+            <button
               onClick={() => navigate(`/projects/${id}/edit`)}
+              className="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition"
+              title="Edit project"
             >
-              Edit Project
-            </Button>
-          </div>
-        )}
+              <Pencil size={18} />
+            </button>
+          )}
+        </div>
       </header>
 
       {/* CONTENT */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* MEDIA */}
         <div className="lg:col-span-2">
-          <ProjectGallery
-            images={project.projectPhotos}
-            video={project.projectVideo}
-          />
+          <ProjectGallery images={project.projectPhotos} video={project.projectVideo} />
         </div>
 
         {/* META */}
@@ -116,9 +104,7 @@ export default function ProjectDetails() {
           {/* Tech Stack */}
           {project.techStack?.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700">
-                Tech Stack
-              </p>
+              <p className="text-sm font-medium text-slate-700">Tech Stack</p>
               <div className="flex flex-wrap gap-2">
                 {project.techStack.map((tech) => (
                   <Tag key={tech} variant="primary">
@@ -132,14 +118,10 @@ export default function ProjectDetails() {
           {/* Tags */}
           {project.tags?.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700">
-                Tags
-              </p>
+              <p className="text-sm font-medium text-slate-700">Tags</p>
               <div className="flex flex-wrap gap-2">
                 {project.tags.map((tag) => (
-                  <Tag key={tag}>
-                    #{tag}
-                  </Tag>
+                  <Tag key={tag}>#{tag}</Tag>
                 ))}
               </div>
             </div>
@@ -152,19 +134,11 @@ export default function ProjectDetails() {
         <section className="pt-10 border-t">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium text-slate-800">
-                Delete project
-              </h3>
-              <p className="text-sm text-slate-500">
-                This action cannot be undone.
-              </p>
+              <h3 className="font-medium text-slate-800">Delete project</h3>
+              <p className="text-sm text-slate-500">This action cannot be undone.</p>
             </div>
 
-            <Button
-              variant="danger"
-              loading={deleting}
-              onClick={handleDelete}
-            >
+            <Button variant="danger" loading={deleting} onClick={handleDelete}>
               Delete
             </Button>
           </div>
