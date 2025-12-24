@@ -8,11 +8,13 @@ import Button from '@/components/common/Button';
 import Tag from '@/components/common/Tag';
 import ProjectGallery from '@/components/project/ProjectGallery';
 import VisibilityBadge from '@/components/project/VisibilityBadge';
+import { isProjectOwner } from '@/utils/isOwner.js';
 
 export default function ProjectDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,11 +34,8 @@ export default function ProjectDetails() {
     fetchProject();
   }, [id]);
 
-  const isOwner =
-    user && project && project.owner?.toString() === user._id;
-
-    console.log(isOwner , "user" , user , "project" , project);
-
+  const isOwner = isProjectOwner(user, project);
+  
   /* ---------------- Loading ---------------- */
   if (loading) {
     return (
