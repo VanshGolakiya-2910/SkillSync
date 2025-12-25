@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pin } from 'lucide-react';
 
 const COLLAPSED_DESC_LINES = 1;
 const EXPANDED_DESC_LINES = 5;
@@ -9,7 +9,7 @@ const EXPANDED_DESC_LINES = 5;
 const COLLAPSED_TAGS = 2;
 const COLLAPSED_STACK = 2;
 
-const ProjectCard = ({ project }) => {
+const ProjectCard = ({ project, isPinned = false }) => {
   const navigate = useNavigate();
   const isPublic = project.visibility === 'public';
   const [expanded, setExpanded] = useState(false);
@@ -26,30 +26,38 @@ const ProjectCard = ({ project }) => {
     <div
       onDoubleClick={() => navigate(`/projects/${project._id}`)}
       className={clsx(
-        'border rounded-xl transition cursor-default select-none',
+        'border rounded-xl transition select-none',
         expanded ? 'bg-slate-50' : 'bg-white',
-        'hover:shadow-sm'
+        isPinned && 'border-indigo-300 bg-indigo-50/40',
+        'hover:shadow-sm cursor-pointer'
       )}
     >
-      <div className="p-4 space-y-3 cursor-pointer" >
+      <div className="p-4 space-y-3">
         {/* HEADER */}
         <div className="flex items-start justify-between gap-3">
-          {/* Title + Visibility */}
-          <div className="flex items-center gap-2 min-w-0">
+          {/* Title + Badges */}
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <h2 className="font-semibold text-lg leading-tight truncate">
               {project.title}
             </h2>
 
+            {/* Visibility */}
             <span
               className={clsx(
                 'text-xs px-2 py-0.5 rounded-full font-medium shrink-0',
-                isPublic
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-slate-200 text-slate-600'
+                isPublic ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
               )}
             >
               {isPublic ? 'Public' : 'Private'}
             </span>
+
+            {/* Pinned Badge */}
+            {isPinned && (
+              <span className="pointer-events-none flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium shrink-0">
+                <Pin size={12} />
+                Pinned
+              </span>
+            )}
           </div>
 
           {/* Expand Arrow */}
@@ -105,12 +113,11 @@ const ProjectCard = ({ project }) => {
                 </span>
               ))}
 
-              {!expanded &&
-                project.techStack?.length > visibleStack.length && (
-                  <span className="text-xs text-slate-400">
-                    +{project.techStack.length - visibleStack.length}
-                  </span>
-                )}
+              {!expanded && project.techStack?.length > visibleStack.length && (
+                <span className="text-xs text-slate-400">
+                  +{project.techStack.length - visibleStack.length}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -143,7 +150,7 @@ const ProjectCard = ({ project }) => {
           </div>
         )}
 
-        {/* CTA (optional, still useful) */}
+        {/* CTA */}
         <button
           onClick={() => navigate(`/projects/${project._id}`)}
           className="text-sm font-medium text-primary hover:underline pt-2"
