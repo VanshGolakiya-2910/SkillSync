@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getFollowing } from '@/services/social.service';
 import useAuth from '@/hooks/useAuth';
 import Avatar from '@/components/common/Avatar';
@@ -9,18 +10,15 @@ export default function Following() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    // ✅ HARD GUARD — prevents /undefined/following calls
+    if (!user?._id) return;
 
     const fetchFollowing = async () => {
       try {
         const res = await getFollowing(user._id);
-
-        // ✅ Normalize backend response safely
         const data = res?.data?.data;
 
-        if (Array.isArray(data)) {
-          setFollowing(data);
-        } else if (Array.isArray(data?.following)) {
+        if (Array.isArray(data?.following)) {
           setFollowing(data.following);
         } else {
           setFollowing([]);
@@ -31,59 +29,77 @@ export default function Following() {
     };
 
     fetchFollowing();
-  }, [user]);
+  }, [user?._id]); // ✅ correct dependency
 
-  /* ---------------- Loading skeleton ---------------- */
+  /* ---------------- Loading ---------------- */
   if (loading) {
     return (
-      <div className="max-w-md mx-auto space-y-3">
+      <div className="max-w-2xl mx-auto space-y-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="h-14 rounded border animate-pulse bg-slate-100"
+            className="h-16 rounded-xl border bg-slate-100 animate-pulse"
           />
         ))}
       </div>
     );
   }
 
-  /* ---------------- Empty state ---------------- */
+  /* ---------------- Empty ---------------- */
   if (!following.length) {
     return (
-      <div className="text-center py-20 space-y-2">
-        <h2 className="text-lg font-semibold">Not following anyone yet</h2>
+      <div className="text-center py-24 space-y-3">
+        <h2 className="text-lg font-semibold">
+          You’re not following anyone yet
+        </h2>
         <p className="text-slate-600">
-          When you follow users, they’ll appear here.
+          Explore profiles and follow people you find interesting.
         </p>
       </div>
     );
   }
 
-  /* ---------------- Following list ---------------- */
+  /* ---------------- List ---------------- */
   return (
-    <div className="max-w-md mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-xl font-semibold">Following</h1>
+        <h1 className="text-2xl font-semibold">Following</h1>
         <p className="text-slate-600">
           People you are following
         </p>
       </div>
 
+      {/* Cards */}
       <div className="space-y-3">
         {following.map((person) => (
-          <div
+          <Link
             key={person._id}
-            className="flex items-center gap-4 border p-3 rounded hover:bg-slate-50 transition"
+            to={`/profile/${person._id}`}
+            className="flex items-center gap-4 border rounded-xl p-4 bg-white hover:bg-slate-50 transition"
           >
-            <Avatar src={person.avatar} size={40} />
+            <Avatar src={person.avatar} size={48} />
 
-            <div className="flex-1">
-              <p className="font-medium">{person.name}</p>
-              <p className="text-sm text-slate-500">
-                {person.email}
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">
+                {person.name}
               </p>
+
+              {person.username ? (
+                <p className="text-sm text-slate-500 truncate">
+                  @{person.username}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 truncate">
+                  {person.email}
+                </p>
+              )}
             </div>
-          </div>
+
+            <span className="text-xs text-slate-400">
+              View →
+            </span>
+          </Link>
         ))}
       </div>
     </div>
