@@ -4,6 +4,8 @@ import {
   getUserById,
   changeAvatar,
   updateUserProfile,
+  getUserFeaturedProjects,
+  updatePinnedProjects,
   changePassword,
 } from "../controllers/user.controller.js";
 import { VerifyJWT } from "../middleware/auth.middleware.js";
@@ -12,7 +14,12 @@ import {avatarUploadOptions } from "../constant.js"
 
 const router = express.Router();
 router.get("/me", VerifyJWT, getUser);
-router.get("/:id", VerifyJWT, getUserById);
+
+router.patch(
+  "/me/pinned-projects",
+  VerifyJWT,
+  updatePinnedProjects
+);  
 router.post(
   "/uploadAvatar",
   VerifyJWT,
@@ -24,5 +31,7 @@ router.post(
 router.post("/updateUserProfile", VerifyJWT, updateUserProfile);
 router.post("/changePassword", VerifyJWT, changePassword);
 
+router.get("/:id", VerifyJWT, getUserById);
+router.get("/:id/projects/featured", getUserFeaturedProjects);
 
 export default router;
