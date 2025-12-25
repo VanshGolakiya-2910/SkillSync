@@ -2,6 +2,7 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asynchandler.js";
+import mongoose from "mongoose";
 
 //followUser & AcceptUser logic : followID comes from the params and userID from the verifyJWT
 //      : after that compare and add in the requested or follow or follower as per the requirement
@@ -77,6 +78,11 @@ const getAllFollowers = asyncHandler(async (req, res, next) => {
 
   if (!userId) throw new ApiError(400, "User ID is required");
 
+if (!mongoose.Types.ObjectId.isValid(userId)) {
+  throw new ApiError(400, 'Invalid user id');
+}
+
+
   const user = await User.findById(userId)
     .populate({
       path: "followers",
@@ -124,6 +130,9 @@ const getAllFollowing = asyncHandler(async (req, res, next) => {
 
   if (!userId) throw new ApiError(400, "User ID is required");
 
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+  throw new ApiError(400, 'Invalid user id');
+}
   const user = await User.findById(userId)
     .populate({
       path: "following",
@@ -170,7 +179,9 @@ const getAllRequested = asyncHandler(async (req, res, next) => {
     .lean();
 
   if (!user) throw new ApiError(404, "User not found");
-
+if (!mongoose.Types.ObjectId.isValid(userId)) {
+  throw new ApiError(400, 'Invalid user id');
+}
   const requestedUsers = user.requested || [];
   const requestedCount = requestedUsers.length;
   ``;
