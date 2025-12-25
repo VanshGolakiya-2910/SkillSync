@@ -173,27 +173,31 @@ const getAllFollowing = asyncHandler(async (req, res, next) => {
   );
 });
 
-const getAllRequested = asyncHandler(async (req, res, next) => {
+const getAllRequested = asyncHandler(async (req, res) => {
+  if (!req.user?._id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
   const user = await User.findById(req.user._id)
     .populate("requested", "name username avatar")
     .lean();
 
-  if (!user) throw new ApiError(404, "User not found");
-if (!mongoose.Types.ObjectId.isValid(userId)) {
-  throw new ApiError(400, 'Invalid user id');
-}
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
   const requestedUsers = user.requested || [];
-  const requestedCount = requestedUsers.length;
-  ``;
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { totalRequested: requestedCount, requestedUsers },
-        "Fetched all follow requests"
-      )
-    );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        totalRequested: requestedUsers.length,
+        requestedUsers,
+      },
+      "Fetched all follow requests"
+    )
+  );
 });
 
 export {
