@@ -70,6 +70,12 @@ const userSchema = new Schema(
     following: [{ type: Schema.Types.ObjectId, ref: "User", index: true }],
     requested: [{ type: Schema.Types.ObjectId, ref: "User" }],
     projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
+    pinnedProjects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project",
+      },
+    ],
 
     refreshToken: { type: String },
 
