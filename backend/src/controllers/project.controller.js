@@ -9,6 +9,8 @@ const addProject = asyncHandler(async (req, res, next) => {
   const user = req.user;
   const files = req.files;
   const { title, description, tags, techStack, visibility } = req.body;
+  const uploadedPhotos = [];
+  let uploadedVideo = null;
 
   if (!user) throw new ApiError(401, "Unauthorized");
   if (!title || !description)
@@ -34,7 +36,6 @@ const addProject = asyncHandler(async (req, res, next) => {
       uploadedVideo = result.secure_url;
     }
   } finally {
-    // ✅ ALWAYS clean temp files
     for (const file of Object.values(files).flat()) {
       if (file?.path && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
