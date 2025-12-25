@@ -1,9 +1,12 @@
+import fs from "fs";
+import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asynchandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import fs from "fs";
+import { Project } from "../models/project.model.js";
+
 const getUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select(
     "-password -refreshToken"
@@ -45,13 +48,15 @@ const changeAvatar = asyncHandler(async (req, res) => {
     }
   }
 
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      { avatar: user.avatar },
-      "Avatar updated successfully"
-    )
-  );
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { avatar: user.avatar },
+        "Avatar updated successfully"
+      )
+    );
 });
 
 const updateUserProfile = asyncHandler(async (req, res) => {
@@ -95,9 +100,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     throw err;
   }
 
-  return res.status(200).json(
-    new ApiResponse(200, user, "Profile updated successfully")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Profile updated successfully"));
 });
 
 const changePassword = asyncHandler(async (req, res) => {
@@ -125,34 +130,142 @@ const changePassword = asyncHandler(async (req, res) => {
 const getUserById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id).select(
-    '-password -refreshToken'
-  );
+  const user = await User.findById(id).select("-password -refreshToken");
 
   if (!user) {
-    throw new ApiError(404, 'User not found');
+    throw new ApiError(404, "User not found");
   }
 
   // Optional: respect profile visibility
   if (user.isProfilePublic === false) {
-    throw new ApiError(404, 'User not found');
+    throw new ApiError(404, "User not found");
   }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User profile fetched successfully"));
+});
+
+const getUserFeaturedProjects = asyncHandler(async (req, res) => {
+  const { id: userId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  // 1️⃣ Fetch only what we need
+  const user = await User.findById(userId)
+    .select("pinnedProjects")
+    .lean();
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  let projects = [];
+  let mode = "latest";
+
+  // 2️⃣ If pinned exists → fetch pinned ONLY
+  if (Array.isArray(user.pinnedProjects) && user.pinnedProjects.length) {
+    const pinnedIds = user.pinnedProjects.slice(0, 4);
+
+    projects = await Project.find({
+      _id: { $in: pinnedIds },
+      visibility: "public",
+    })
+      .lean();
+
+    // Preserve pin order (IMPORTANT)
+    const projectMap = new Map(
+      projects.map((p) => [p._id.toString(), p])
+    );
+
+    projects = pinnedIds
+      .map((id) => projectMap.get(id.toString()))
+      .filter(Boolean);
+
+    mode = "pinned";
+  }
+
+  // 3️⃣ Fallback ONLY if no pinned results
+  if (!projects.length) {
+    projects = await Project.find({
+      owner: userId,
+      visibility: "public",
+    })
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .lean();
+
+    mode = "latest";
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { projects, mode },
+      "Featured projects fetched successfully"
+    )
+  );
+});
+
+const updatePinnedProjects = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+  const { projectIds } = req.body;
+
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (!Array.isArray(projectIds)) {
+    throw new ApiError(400, "projectIds must be an array");
+  }
+
+  if (projectIds.length > 4) {
+    throw new ApiError(400, "You can pin a maximum of 4 projects");
+  }
+
+  // Validate ObjectIds
+  const invalidId = projectIds.find(
+    (id) => !mongoose.Types.ObjectId.isValid(id)
+  );
+  if (invalidId) {
+    throw new ApiError(400, "Invalid project id provided");
+  }
+
+  // Verify ownership of all projects
+  const ownedProjectsCount = await Project.countDocuments({
+    _id: { $in: projectIds },
+    owner: userId,
+  });
+
+  if (ownedProjectsCount !== projectIds.length) {
+    throw new ApiError(403, "You can only pin your own projects");
+  }
+
+  // Save exact order
+  await User.findByIdAndUpdate(
+    userId,
+    { pinnedProjects: projectIds },
+    { new: true }
+  );
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        user,
-        'User profile fetched successfully'
+        { pinnedProjects: projectIds },
+        "Pinned projects updated successfully"
       )
     );
 });
 
-
 export {
   getUser,
   changeAvatar,
+  getUserFeaturedProjects,
+  updatePinnedProjects,
   updateUserProfile,
   changePassword,
   getUserById,
