@@ -38,3 +38,15 @@ export const changePassword = (data) => {
 
 export const getUserById = (id) =>
   api.get(`/user/${id}`);
+
+/* Featured projects (pinned or fallback) */
+export const getUserFeaturedProjects = (id) =>
+  api.get(`/user/${id}/projects/featured`);
+
+/* Owner-only: all projects */
+export const getUserProjects = () =>
+  api.get('/projects');
+
+/* Update pins */
+export const updatePinnedProjects = (projectIds) =>
+  api.patch('/user/me/pinned-projects', { projectIds });
